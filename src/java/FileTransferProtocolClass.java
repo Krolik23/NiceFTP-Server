@@ -89,11 +89,11 @@ public class FileTransferProtocolClass extends Thread{
             option="Y";
         }
 
-        if(option.compareTo("Y")== 0)    //Tutaj dodać gdzie zapisać plik
+        if(option.compareTo("Y")== 0)
         {
-            setTransferSocket(transferServer.accept());
+            setTransferSocket(transferServer.accept()); //połączenie na porcie 4888
 
-            FileOutputStream fout = new FileOutputStream("C:/Users/Królik/Desktop/InstaLoader/pliczek.exe");
+            FileOutputStream fout = new FileOutputStream("C:/Users/Królik/Desktop/InstaLoader/downloadedFile.exe");
             int ch;
             String temp;
             do
