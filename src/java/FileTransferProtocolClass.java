@@ -1,6 +1,10 @@
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 
 public class FileTransferProtocolClass extends Thread{
@@ -39,9 +43,21 @@ public class FileTransferProtocolClass extends Thread{
         }
     }
 
+    public void closeTransferSocket(Socket transferSocket){
+        try{
+            clientTransferDataInput.close();
+            clientTransferDataOutput.close();
+            transferSocket.close();
+        }
+        catch(Exception ex){
+            System.out.println(ex);
+        }
+    }
+
 
     void SendFile() throws Exception
     {
+        ServerSocket transferServer = new ServerSocket(1200);
         String filename= clientCommunicationDataInput.readUTF();
         File f=new File(filename);
         if(!f.exists())
@@ -52,23 +68,28 @@ public class FileTransferProtocolClass extends Thread{
         else
         {
             clientCommunicationDataOutput.writeUTF("READY");
+
+            setTransferSocket(transferServer.accept()); //nasłuchiwanie na porcie 1200
+
             FileInputStream fin=new FileInputStream(f);
             int ch;
             do
             {
                 ch=fin.read();
-                clientCommunicationDataOutput.writeUTF(String.valueOf(ch));
+                clientTransferDataOutput.writeUTF(String.valueOf(ch));
             }
             while(ch!=-1);
             fin.close();
-            clientCommunicationDataOutput.writeUTF("File Receive Successfully");
+            clientCommunicationDataOutput.writeUTF("File Was Received Successfully");
+            closeTransferSocket(clientTransferSocket);
+            transferServer.close();
         }
     }
 
 
     void ReceiveFile() throws Exception
     {
-        ServerSocket transferServer = new ServerSocket(4888);
+        ServerSocket transferServer = new ServerSocket(1200);
 
         String filename= clientCommunicationDataInput.readUTF();
         if(filename.compareTo("File not found")==0)
@@ -91,9 +112,10 @@ public class FileTransferProtocolClass extends Thread{
 
         if(option.compareTo("Y")== 0)
         {
-            setTransferSocket(transferServer.accept()); //połączenie na porcie 4888
+            String fileFullPath = clientCommunicationDataInput.readUTF();
 
-            FileOutputStream fout = new FileOutputStream("C:/Users/Królik/Desktop/InstaLoader/downloadedFile.exe");
+            setTransferSocket(transferServer.accept()); //połączenie na porcie 1200
+            FileOutputStream fout = new FileOutputStream(fileFullPath);
             int ch;
             String temp;
             do
@@ -106,7 +128,8 @@ public class FileTransferProtocolClass extends Thread{
                 }
             }while(ch!=-1);
             fout.close();
-            clientCommunicationDataOutput.writeUTF("File Send Successfully");
+            clientCommunicationDataOutput.writeUTF("File Was Sent Successfully");
+            closeTransferSocket(clientTransferSocket);
             transferServer.close();
         }
         else
@@ -116,40 +139,66 @@ public class FileTransferProtocolClass extends Thread{
 
     }
 
+    private void printExceptionHelper(){
+        try{
+            clientCommunicationDataOutput.writeUTF("No such file or directory");
+        }
+        catch(IOException ex){}
+    }
+
+    public void DeleteFile(){
+        try {
+            System.out.println("Usuwam plik...");
+            String filePath = clientCommunicationDataInput.readUTF();
+            Path pathToDelete = Paths.get(filePath);
+            Files.delete(pathToDelete);
+            clientCommunicationDataOutput.writeUTF("DELATED");
+
+        }
+        catch (NoSuchFileException x) {
+            printExceptionHelper();
+        }
+        catch (IOException InputOutputException){
+            System.out.println(InputOutputException);
+        }
+    }
+
 
     public void run(){
         try {
             while (true) {
                 System.out.println("Waiting for orders...");
-                    String order = clientCommunicationDataInput.readUTF();
+                String order = clientCommunicationDataInput.readUTF();
                 switch (order) {
-                    case "RECEIVE": {
-                        System.out.println("\tCaught RECEIVE order...");
+                    case "RETR": {
+                        System.out.println("\tCaught RETR comand...");
                         SendFile();
                     }
                     break;
-                    case "SEND":
+                    case "APPE":
                     {
-                        System.out.println("\tCaught SEND order...");
+                        System.out.println("\tCaught APPE comand...");
                         ReceiveFile();
                     }
                     break;
-                    case "DISCONNECT":
+                    case "DELE":
                     {
-                        System.out.println("\tCaught DISCONNECT order...");
+                        System.out.println("\tCought DELE comand...");
+                        DeleteFile();
+                    }
+                    break;
+                    case "QUIT":
+                    {
+                        System.out.println("\tCaught QUIT order...");
                         System.exit(1);
                     }
                     break;
                 }
             }
-        }
+            }
         catch(Exception ex) {
-            System.out.println(ex);
+                System.out.println(ex);
         }
-
-
-
-
         }
     }
 
