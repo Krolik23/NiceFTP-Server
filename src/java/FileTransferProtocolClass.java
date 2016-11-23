@@ -32,7 +32,7 @@ public class FileTransferProtocolClass extends Thread{
     }
 
 
-    void SendFile() throws Exception
+    void sendFile() throws Exception
     {
         ServerSocket transferServer = new ServerSocket(1200);
         String filename= clientCommunicationDataInput.readUTF();
@@ -71,7 +71,7 @@ public class FileTransferProtocolClass extends Thread{
     }
 
 
-    void ReceiveFile() throws Exception
+    void receiveFile() throws Exception
     {
         ServerSocket transferServer = new ServerSocket(1200);
 
@@ -90,7 +90,7 @@ public class FileTransferProtocolClass extends Thread{
         }
         else
         {
-            clientCommunicationDataOutput.writeUTF("SendFile");
+            clientCommunicationDataOutput.writeUTF("sendFile");
             option="Y";
         }
 
@@ -134,7 +134,7 @@ public class FileTransferProtocolClass extends Thread{
         catch(IOException ex){}
     }
 
-    public void DeleteFile(){
+    public void deleteFile(){
         try {
             System.out.println("Usuwam plik...");
             String filePath = clientCommunicationDataInput.readUTF();
@@ -160,19 +160,19 @@ public class FileTransferProtocolClass extends Thread{
                 switch (order) {
                     case "RETR": {
                         System.out.println("\tCaught RETR comand...");
-                        SendFile();
+                        sendFile();
                     }
                     break;
                     case "APPE":
                     {
                         System.out.println("\tCaught APPE comand...");
-                        ReceiveFile();
+                        receiveFile();
                     }
                     break;
                     case "DELE":
                     {
                         System.out.println("\tCought DELE comand...");
-                        DeleteFile();
+                        deleteFile();
                     }
                     break;
                     case "QUIT":
