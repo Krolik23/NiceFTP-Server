@@ -13,9 +13,8 @@ public class FileTransferProtocolClass extends Thread{
     DataInputStream clientCommunicationDataInput;
     DataOutputStream clientCommunicationDataOutput;
 
-    Socket clientTransferSocket;
-    DataInputStream clientTransferDataInput;
-    DataOutputStream clientTransferDataOutput;
+    BufferedOutputStream fileOutput;
+    BufferedInputStream fileInput;
 
 
     public FileTransferProtocolClass(Socket connectedClientSocket){
@@ -29,28 +28,6 @@ public class FileTransferProtocolClass extends Thread{
 
         }
         catch(Exception ex){
-        }
-    }
-
-    public void setTransferSocket(Socket transferSocket){
-        try {
-            clientTransferSocket = transferSocket;
-            clientTransferDataInput = new DataInputStream(clientTransferSocket.getInputStream());
-            clientTransferDataOutput = new DataOutputStream(clientTransferSocket.getOutputStream());
-        }
-        catch(Exception ex){
-            System.out.println(ex);
-        }
-    }
-
-    public void closeTransferSocket(Socket transferSocket){
-        try{
-            clientTransferDataInput.close();
-            clientTransferDataOutput.close();
-            transferSocket.close();
-        }
-        catch(Exception ex){
-            System.out.println(ex);
         }
     }
 
@@ -69,20 +46,27 @@ public class FileTransferProtocolClass extends Thread{
         {
             clientCommunicationDataOutput.writeUTF("READY");
 
-            setTransferSocket(transferServer.accept()); //nasłuchiwanie na porcie 1200
+            Socket clientTransferSocket = transferServer.accept(); //Połączenie z socketem na porcie 1200
 
+            fileOutput = new BufferedOutputStream(clientTransferSocket.getOutputStream());
             FileInputStream fin=new FileInputStream(f);
-            int ch;
-            do
-            {
-                ch=fin.read();
-                clientTransferDataOutput.writeUTF(String.valueOf(ch));
+            fileInput = new BufferedInputStream(fin);
+
+            byte[] buffer = new byte[2048];
+            int i;
+
+            while ((i = fileInput.read(buffer)) != -1){
+                fileOutput.write(buffer,0,i);
             }
-            while(ch!=-1);
+
+
+            fileOutput.flush();
+            fileOutput.close();
+            fileInput.close();
             fin.close();
-            clientCommunicationDataOutput.writeUTF("File Was Received Successfully");
-            closeTransferSocket(clientTransferSocket);
             transferServer.close();
+            clientTransferSocket.close();
+            clientCommunicationDataOutput.writeUTF("File Was Received Successfully");
         }
     }
 
@@ -114,22 +98,26 @@ public class FileTransferProtocolClass extends Thread{
         {
             String fileFullPath = clientCommunicationDataInput.readUTF();
 
-            setTransferSocket(transferServer.accept()); //połączenie na porcie 1200
+            Socket transferSocket = transferServer.accept();
+
+            fileInput = new BufferedInputStream(transferSocket.getInputStream());
             FileOutputStream fout = new FileOutputStream(fileFullPath);
-            int ch;
-            String temp;
-            do
-            {
-                temp= clientTransferDataInput.readUTF();
-                ch=Integer.parseInt(temp);
-                if(ch!=-1)
-                {
-                    fout.write(ch);
-                }
-            }while(ch!=-1);
+            fileOutput = new BufferedOutputStream(fout);
+
+            int i;
+
+            while((i = fileInput.read()) != -1){
+                fileOutput.write(i);
+            }
+
+            fileOutput.close();
+            fileInput.close();
+            transferServer.close();
+            transferSocket.close();
+
             fout.close();
             clientCommunicationDataOutput.writeUTF("File Was Sent Successfully");
-            closeTransferSocket(clientTransferSocket);
+
             transferServer.close();
         }
         else
@@ -152,7 +140,7 @@ public class FileTransferProtocolClass extends Thread{
             String filePath = clientCommunicationDataInput.readUTF();
             Path pathToDelete = Paths.get(filePath);
             Files.delete(pathToDelete);
-            clientCommunicationDataOutput.writeUTF("DELATED");
+            clientCommunicationDataOutput.writeUTF("DELETED");
 
         }
         catch (NoSuchFileException x) {
@@ -201,6 +189,3 @@ public class FileTransferProtocolClass extends Thread{
         }
         }
     }
-
-
-
