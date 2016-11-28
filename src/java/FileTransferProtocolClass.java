@@ -24,6 +24,7 @@ public class FileTransferProtocolClass extends Thread{
                 clientCommunicationDataInput = new DataInputStream(clientCommunicationSocket.getInputStream());
                 clientCommunicationDataOutput = new DataOutputStream(clientCommunicationSocket.getOutputStream());
                 System.out.println("Connected with FTP client...");
+                clientCommunicationDataOutput.writeUTF("220 Service ready for new user.");
                 start();
 
         }
@@ -39,12 +40,13 @@ public class FileTransferProtocolClass extends Thread{
         File f=new File(filename);
         if(!f.exists())
         {
-            clientCommunicationDataOutput.writeUTF("File Not Found");
+            clientCommunicationDataOutput.writeUTF(" File Not Found");
+            clientCommunicationDataOutput.writeUTF(" 552 Requested file action aborted");
             return;
         }
         else
         {
-            clientCommunicationDataOutput.writeUTF("READY");
+            clientCommunicationDataOutput.writeUTF(" 150 OK");
 
             Socket clientTransferSocket = transferServer.accept(); //Połączenie z socketem na porcie 1200
 
@@ -54,6 +56,8 @@ public class FileTransferProtocolClass extends Thread{
 
             byte[] buffer = new byte[2048];
             int i;
+
+            clientCommunicationDataOutput.writeUTF(" 125 Data connection already open; transfer starting");
 
             while ((i = fileInput.read(buffer)) != -1){
                 fileOutput.write(buffer,0,i);
@@ -66,7 +70,7 @@ public class FileTransferProtocolClass extends Thread{
             fin.close();
             transferServer.close();
             clientTransferSocket.close();
-            clientCommunicationDataOutput.writeUTF("File Was Received Successfully");
+            clientCommunicationDataOutput.writeUTF(" 250 Requested file action okay, completed");
         }
     }
 
@@ -78,6 +82,7 @@ public class FileTransferProtocolClass extends Thread{
         String filename= clientCommunicationDataInput.readUTF();
         if(filename.compareTo("File not found")==0)
         {
+            clientCommunicationDataOutput.writeUTF(" 552 Requested file action aborted");
             return;
         }
         File file=new File(filename);
@@ -85,24 +90,28 @@ public class FileTransferProtocolClass extends Thread{
 
         if(file.exists())
         {
-            clientCommunicationDataOutput.writeUTF("File Already Exists");
+            clientCommunicationDataOutput.writeUTF(" 450 Requested file action not taken; File Already Exists");
             option= clientCommunicationDataInput.readUTF();
         }
         else
         {
-            clientCommunicationDataOutput.writeUTF("sendFile");
+            clientCommunicationDataOutput.writeUTF(" 150 File status okay; about to open data connection");
+
             option="Y";
         }
 
         if(option.compareTo("Y")== 0)
         {
+
             String fileFullPath = clientCommunicationDataInput.readUTF();
 
             Socket transferSocket = transferServer.accept();
 
+
             fileInput = new BufferedInputStream(transferSocket.getInputStream());
             FileOutputStream fout = new FileOutputStream(fileFullPath);
             fileOutput = new BufferedOutputStream(fout);
+            clientCommunicationDataOutput.writeUTF(" 125 Data connection already open; transfer starting.");
 
             int i;
 
@@ -110,15 +119,19 @@ public class FileTransferProtocolClass extends Thread{
                 fileOutput.write(i);
             }
 
+
+
             fileOutput.close();
             fileInput.close();
             transferServer.close();
             transferSocket.close();
 
             fout.close();
-            clientCommunicationDataOutput.writeUTF("File Was Sent Successfully");
+            clientCommunicationDataOutput.writeUTF(" 226 Closing data connection.Requested file action successful");
+
 
             transferServer.close();
+            clientCommunicationDataOutput.writeUTF(" 250 Requested file action okay, completed.");
         }
         else
         {
