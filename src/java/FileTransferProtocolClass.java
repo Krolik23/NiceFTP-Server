@@ -1,10 +1,9 @@
+import jdk.internal.util.xml.impl.Input;
+
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.nio.file.Files;
-import java.nio.file.NoSuchFileException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.nio.file.*;
 
 
 public class FileTransferProtocolClass extends Thread{
@@ -35,6 +34,7 @@ public class FileTransferProtocolClass extends Thread{
 
     void sendFile() throws Exception
     {
+        listDir();
         ServerSocket transferServer = new ServerSocket(1200);
         String filename= clientCommunicationDataInput.readUTF();
         File f=new File(filename);
@@ -48,8 +48,13 @@ public class FileTransferProtocolClass extends Thread{
         {
             clientCommunicationDataOutput.writeUTF(" 150 OK");
 
-            Socket clientTransferSocket = transferServer.accept(); //Połączenie z socketem na porcie 1200
+            String sendingOption = clientCommunicationDataInput.readUTF();
 
+            if(sendingOption.compareTo("552 Requested file action aborted") == 0){
+                return;
+            }
+
+            Socket clientTransferSocket = transferServer.accept(); //Połączenie z socketem na porcie 1200
             fileOutput = new BufferedOutputStream(clientTransferSocket.getOutputStream());
             FileInputStream fin=new FileInputStream(f);
             fileInput = new BufferedInputStream(fin);
@@ -142,26 +147,58 @@ public class FileTransferProtocolClass extends Thread{
 
     private void printExceptionHelper(){
         try{
-            clientCommunicationDataOutput.writeUTF("No such file or directory");
+            clientCommunicationDataOutput.writeUTF("!!! No such file or directory !!!");
         }
         catch(IOException ex){}
     }
 
-    public void deleteFile(){
+    public void deleteFile() throws Exception{
         try {
             System.out.println("Usuwam plik...");
             String filePath = clientCommunicationDataInput.readUTF();
             Path pathToDelete = Paths.get(filePath);
             Files.delete(pathToDelete);
-            clientCommunicationDataOutput.writeUTF("DELETED");
+            clientCommunicationDataOutput.writeUTF(" 250 Requested file action okay, completed");
 
         }
         catch (NoSuchFileException x) {
+            clientCommunicationDataOutput.writeUTF(" 550 Requested action not taken; file not found");
             printExceptionHelper();
+        }
+        catch(DirectoryNotEmptyException x){
+            clientCommunicationDataOutput.writeUTF(" 550 Requested action not taken; directory not empty");
         }
         catch (IOException InputOutputException){
             System.out.println(InputOutputException);
         }
+    }
+
+    public void checkUsername(String userName) throws Exception{
+        if(userName.compareTo("szymez") == 0){
+            clientCommunicationDataOutput.writeUTF("331 User name okay, need password");
+        }
+        else{
+            clientCommunicationDataOutput.writeUTF("530 Not logged in");
+        }
+    }
+
+    public void checkPassword(String password) throws Exception{
+        if(password.compareTo("szymon") == 0){
+            clientCommunicationDataOutput.writeUTF("230 User logged in, proceed");
+        }
+        else{
+            clientCommunicationDataOutput.writeUTF("530 Not logged in");
+        }
+    }
+
+    public void listDir() throws Exception{
+        String dirPath = "C:/Users/Królik/IdeaProjects/NiceFTP-Server/FTPServer";
+        File dir = new File(dirPath);
+        File[] files = dir.listFiles();
+
+        ObjectOutputStream out = new ObjectOutputStream(clientCommunicationDataOutput);
+        out.writeObject(files);
+
     }
 
 
@@ -186,6 +223,18 @@ public class FileTransferProtocolClass extends Thread{
                     {
                         System.out.println("\tCought DELE comand...");
                         deleteFile();
+                    }
+                    break;
+                    case "USER":
+                    {
+                        String userName = clientCommunicationDataInput.readUTF();
+                        checkUsername(userName);
+                    }
+                    break;
+                    case "PASS":
+                    {
+                        String password = clientCommunicationDataInput.readUTF();
+                        checkPassword(password);
                     }
                     break;
                     case "QUIT":
