@@ -154,7 +154,8 @@ public class FileTransferProtocolClass extends Thread{
 
     public void deleteFile() throws Exception{
         try {
-            System.out.println("Usuwam plik...");
+            listDir();
+            System.out.println("Deleting file...");
             String filePath = clientCommunicationDataInput.readUTF();
             Path pathToDelete = Paths.get(filePath);
             Files.delete(pathToDelete);
@@ -174,7 +175,7 @@ public class FileTransferProtocolClass extends Thread{
     }
 
     public void checkUsername(String userName) throws Exception{
-        if(userName.compareTo("szymez") == 0){
+        if(userName.compareTo("test") == 0){
             clientCommunicationDataOutput.writeUTF("331 User name okay, need password");
         }
         else{
@@ -183,7 +184,7 @@ public class FileTransferProtocolClass extends Thread{
     }
 
     public void checkPassword(String password) throws Exception{
-        if(password.compareTo("szymon") == 0){
+        if(password.compareTo("test1") == 0){
             clientCommunicationDataOutput.writeUTF("230 User logged in, proceed");
         }
         else{
@@ -196,15 +197,24 @@ public class FileTransferProtocolClass extends Thread{
         File dir = new File(dirPath);
         File[] files = dir.listFiles();
 
-        ObjectOutputStream out = new ObjectOutputStream(clientCommunicationDataOutput);
-        out.writeObject(files);
+        FileInfo[] info = new FileInfo[files.length];
 
+        for(int i = 0; i < files.length; i++){
+            info[i] = new FileInfo(files[i].getName(),files[i].length(),files[i].getAbsolutePath());
+        }
+
+
+        ObjectOutputStream out = new ObjectOutputStream(clientCommunicationDataOutput);
+
+        out.writeObject(info);
+        out.flush();
     }
 
 
     public void run(){
         try {
-            while (true) {
+            boolean exit = false;
+            while (!exit) {
                 System.out.println("Waiting for orders...");
                 String order = clientCommunicationDataInput.readUTF();
                 switch (order) {
@@ -240,11 +250,14 @@ public class FileTransferProtocolClass extends Thread{
                     case "QUIT":
                     {
                         System.out.println("\tCaught QUIT order...");
-                        System.exit(1);
+                        System.exit(0);
+
+
                     }
                     break;
                 }
             }
+
             }
         catch(Exception ex) {
                 System.out.println(ex);

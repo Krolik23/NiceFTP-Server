@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" build-on-make="true" name="NiceFTP-Server:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/NiceFTP_Server_jar</output-path>
+    <root id="archive" name="NiceFTP-Server.jar">
+      <element id="module-output" name="NiceFTP-Server" />
+    </root>
+  </artifact>
+</component>
