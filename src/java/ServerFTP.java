@@ -10,10 +10,7 @@ public class ServerFTP{
         System.out.println("FTP server works on port 21");
         System.out.println("Connecting...");
         while (true) {
-
             FileTransferProtocolClass transferClass = new FileTransferProtocolClass(serverSocket.accept());
-            System.out.println("Polaczono");
-
         }
     }
 }

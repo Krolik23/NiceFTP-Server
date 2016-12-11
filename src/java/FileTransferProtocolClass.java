@@ -6,8 +6,7 @@ import java.nio.file.*;
 
 public class FileTransferProtocolClass extends Thread{
 
-    //String home = System.getProperty("user.home")+"\\Desktop\\NiceFTP-Server\\FTPServer\\";
-    String home = System.getProperty("user.home") + "\\IdeaProjects\\NiceFTP-Server\\FTPServer\\";
+    String home = System.getProperty("user.dir")+"\\FTPServer\\";
 
     Socket clientCommunicationSocket;
     InputStreamReader clientCommunicationDataInput;
@@ -27,7 +26,6 @@ public class FileTransferProtocolClass extends Thread{
                 commandReader = new BufferedReader(clientCommunicationDataInput);
                 clientCommunicationDataOutput = new OutputStreamWriter(clientCommunicationSocket.getOutputStream(),"UTF-8");
                 System.out.println("Connected with FTP client...");
-                //clientCommunicationDataOutput.writeUTF("220 Service ready for new user.");
                 clientCommunicationDataOutput.write("220 Service ready for new user.\n",0,"220 Service ready for new user.\n".length());
                 clientCommunicationDataOutput.flush();
                 start();
@@ -50,21 +48,19 @@ public class FileTransferProtocolClass extends Thread{
         File f=new File(filename);
         if(!f.exists())
         {
-            //clientCommunicationDataOutput.writeUTF(" File Not Found");
             clientCommunicationDataOutput.write(" File Not Found\n",0," File Not Found\n".length());
             clientCommunicationDataOutput.flush();
-            //clientCommunicationDataOutput.writeUTF(" 552 Requested file action aborted");
             clientCommunicationDataOutput.write(" 552 Requested file action aborted\n",0," 552 Requested file action aborted\n".length());
             clientCommunicationDataOutput.flush();
+            clientTransferSocket.close();
+            transferServer.close();
             return;
         }
         else
         {
-            //clientCommunicationDataOutput.writeUTF(" 150 OK");
             clientCommunicationDataOutput.write(" 150 OK\n",0," 150 OK\n".length());
             clientCommunicationDataOutput.flush();
 
-            //String sendingOption = clientCommunicationDataInput.readUTF();
             String sendingOption = commandReader.readLine();
 
             if(sendingOption.compareTo("552 Requested file action aborted") == 0){
@@ -81,7 +77,6 @@ public class FileTransferProtocolClass extends Thread{
             byte[] buffer = new byte[2048];
             int i;
 
-            //clientCommunicationDataOutput.writeUTF(" 125 Data connection already open; transfer starting");
             clientCommunicationDataOutput.write(" 125 Data connection already open; transfer starting\n",0," 125 Data connection already open; transfer starting\n".length());
             clientCommunicationDataOutput.flush();
 
@@ -96,7 +91,6 @@ public class FileTransferProtocolClass extends Thread{
             fin.close();
             transferServer.close();
             clientTransferSocket.close();
-            //clientCommunicationDataOutput.writeUTF(" 250 Requested file action okay, completed");
             clientCommunicationDataOutput.write(" 250 Requested file action okay, completed\n",0," 250 Requested file action okay, completed\n".length());
             clientCommunicationDataOutput.flush();
         }
@@ -108,7 +102,6 @@ public class FileTransferProtocolClass extends Thread{
         ServerSocket transferServer = new ServerSocket(1200);
         Socket transferSocket = transferServer.accept();
 
-        //String filename= clientCommunicationDataInput.readUTF();
         String filename= commandReader.readLine();
 
         if(filename.compareTo("Wrong path") == 0 || filename.compareTo("File not found") == 0)
@@ -117,7 +110,7 @@ public class FileTransferProtocolClass extends Thread{
                 clientCommunicationDataOutput.write("500 Syntax error, wrong path\n",0,"500 Syntax error, wrong path\n".length());
                 clientCommunicationDataOutput.flush();
             }else if(filename.compareTo("File not found") == 0){
-                clientCommunicationDataOutput.write("550 File not found\n",0,"File not found\n".length());
+                clientCommunicationDataOutput.write("550 File not found\n",0,"550 File not found\n".length());
                 clientCommunicationDataOutput.flush();
             }
             clientCommunicationDataOutput.write("552 Requested file action aborted\n",0,"552 Requested file action aborted\n".length());
@@ -140,14 +133,12 @@ public class FileTransferProtocolClass extends Thread{
 
         if(file.exists())
         {
-            //clientCommunicationDataOutput.writeUTF(" 450 Requested file action not taken; File Already Exists");
             clientCommunicationDataOutput.write("450 Requested file action not taken; File Already Exists; Continue anyway?\n",0,"450 Requested file action not taken; File Already Exists; Continue anyway?\n".length());
             clientCommunicationDataOutput.flush();
             option= commandReader.readLine();
         }
         else
         {
-            //clientCommunicationDataOutput.writeUTF(" 150 File status okay; about to open data connection");
             clientCommunicationDataOutput.write("150 File status okay; about to open data connection\n",0,"150 File status okay; about to open data connection\n".length());
             clientCommunicationDataOutput.flush();
 
@@ -156,17 +147,11 @@ public class FileTransferProtocolClass extends Thread{
 
         if(option.compareTo("Y")== 0)
         {
-
-            //String fileFullPath = clientCommunicationDataInput.readUTF();
             String fileFullPath = commandReader.readLine();
-
-            //Socket transferSocket = transferServer.accept();
-
 
             fileInput = new BufferedInputStream(transferSocket.getInputStream());
             FileOutputStream fout = new FileOutputStream(fileFullPath);
             fileOutput = new BufferedOutputStream(fout);
-            //clientCommunicationDataOutput.writeUTF(" 125 Data connection already open; transfer starting.");
             clientCommunicationDataOutput.write("125 Data connection already open; transfer starting.\n",0,"125 Data connection already open; transfer starting.\n".length());
             clientCommunicationDataOutput.flush();
 
@@ -180,17 +165,14 @@ public class FileTransferProtocolClass extends Thread{
 
             fileOutput.close();
             fileInput.close();
-           // transferServer.close();
             transferSocket.close();
 
             fout.close();
-            //clientCommunicationDataOutput.writeUTF(" 226 Closing data connection.Requested file action successful");
             clientCommunicationDataOutput.write("226 Closing data connection.Requested file action successful\n",0,"226 Closing data connection.Requested file action successful\n".length());
             clientCommunicationDataOutput.flush();
 
 
             transferServer.close();
-            //clientCommunicationDataOutput.writeUTF(" 250 Requested file action okay, completed.");
             clientCommunicationDataOutput.write("250 Completed\n",0,"250 Completed\n".length());
             clientCommunicationDataOutput.flush();
 
@@ -206,7 +188,6 @@ public class FileTransferProtocolClass extends Thread{
 
     private void printExceptionHelper(){
         try{
-            //clientCommunicationDataOutput.writeUTF("!!! No such file or directory !!!");
             clientCommunicationDataOutput.write("!!! No such file or directory !!!\n",0,"!!! No such file or directory !!!\n".length());
             clientCommunicationDataOutput.flush();
         }
@@ -217,24 +198,20 @@ public class FileTransferProtocolClass extends Thread{
         try {
             listDir();
             System.out.println("Deleting file...");
-            //String filePath = clientCommunicationDataInput.readUTF();
             String filePath = commandReader.readLine();
 
             Path pathToDelete = Paths.get(filePath);
             Files.delete(pathToDelete);
-            //clientCommunicationDataOutput.writeUTF(" 250 Requested file action okay, completed");
             clientCommunicationDataOutput.write(" 250 Requested file action okay, completed\n",0," 250 Requested file action okay, completed\n".length());
             clientCommunicationDataOutput.flush();
 
         }
         catch (NoSuchFileException x) {
-            //clientCommunicationDataOutput.writeUTF(" 550 Requested action not taken; file not found");
             clientCommunicationDataOutput.write(" 550 Requested action not taken; file not found\n",0," 550 Requested action not taken; file not found\n".length());
             clientCommunicationDataOutput.flush();
             printExceptionHelper();
         }
         catch(DirectoryNotEmptyException x){
-            //clientCommunicationDataOutput.writeUTF(" 550 Requested action not taken; directory not empty");
             clientCommunicationDataOutput.write(" 550 Requested action not taken; directory not empty\n",0," 550 Requested action not taken; directory not empty\n".length());
             clientCommunicationDataOutput.flush();
         }
@@ -245,12 +222,10 @@ public class FileTransferProtocolClass extends Thread{
 
     public void checkUsername(String userName) throws Exception{
         if(userName.compareTo("test") == 0){
-            //clientCommunicationDataOutput.writeUTF("331 User name okay, need password");
             clientCommunicationDataOutput.write("331 User name okay, need password\n",0,"331 User name okay, need password\n".length());
             clientCommunicationDataOutput.flush();
         }
         else{
-            //clientCommunicationDataOutput.writeUTF("530 Not logged in");
             clientCommunicationDataOutput.write("530 Not logged in\n",0,"530 Not logged in\n".length());
             clientCommunicationDataOutput.flush();
         }
@@ -258,12 +233,10 @@ public class FileTransferProtocolClass extends Thread{
 
     public void checkPassword(String password) throws Exception{
         if(password.compareTo("test1") == 0){
-            //clientCommunicationDataOutput.writeUTF("230 User logged in, proceed");
             clientCommunicationDataOutput.write("230 User logged in, proceed\n",0,"230 User logged in, proceed\n".length());
             clientCommunicationDataOutput.flush();
         }
         else{
-            //clientCommunicationDataOutput.writeUTF("530 Not logged in");
             clientCommunicationDataOutput.write("530 Not logged in\n",0,"530 Not logged in\n".length());
             clientCommunicationDataOutput.flush();
         }
@@ -278,7 +251,7 @@ public class FileTransferProtocolClass extends Thread{
 
 
 
-        String dirPath = home;  //C:/Users/Królik/IdeaProjects/NiceFTP-Server/FTPServer
+        String dirPath = home;
         File dir = new File(dirPath);
         File[] files = dir.listFiles();
 
@@ -316,7 +289,6 @@ public class FileTransferProtocolClass extends Thread{
             boolean exit = false;
             while (!exit) {
                 System.out.println("Waiting for orders...");
-                //String order = clientCommunicationDataInput.readUTF();
                 String order = commandReader.readLine();
                 switch (order) {
                     case "RETR": {
@@ -343,15 +315,12 @@ public class FileTransferProtocolClass extends Thread{
                     break;
                     case "USER":
                     {
-                        //String userName = clientCommunicationDataInput.readUTF();
                         String userName = commandReader.readLine();
-
                         checkUsername(userName);
                     }
                     break;
                     case "PASS":
                     {
-                        //String password = clientCommunicationDataInput.readUTF();
                         String password = commandReader.readLine();
                         checkPassword(password);
                     }
@@ -366,13 +335,12 @@ public class FileTransferProtocolClass extends Thread{
 
                     }
                     break;
+                    }
                 }
-            }
-
             }
         catch(Exception ex) {
                 System.out.println(ex);
                 System.exit(0);
-        }
+            }
         }
     }
